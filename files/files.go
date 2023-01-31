@@ -49,6 +49,62 @@ func PathIsExist(path string) bool {
 	}
 }
 
+// 判断目录是否存在
+func ExistDir(dirname string) bool {
+	fi, err := os.Stat(dirname)
+	return (err == nil || os.IsExist(err)) && fi.IsDir()
+}
+
+// 检查目录或文件是否存在
+func Exists(filePath string) bool {
+	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+// 目录不存在则创建目录
+func CreateDirIfNotExist(dirPath string, permMode os.FileMode) error {
+	if Exists(dirPath) {
+		return nil
+	}
+	err := os.MkdirAll(dirPath, permMode)
+	return err
+}
+
+// 获取给定目录下的所有文件
+func GetFiles(dirPath string) ([]string, error) {
+	var fileArray []string
+	err := filepath.Walk(dirPath, func(path string, info fs.FileInfo, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if !info.IsDir() {
+			fileArray = append(fileArray, path)
+		}
+		return nil
+	})
+	return fileArray, err
+}
+
+// 根据glob规则获取指定目录下匹配的所有文件
+func SearchFileInPath(dirPath string, fileNameGlobReg string) ([]string, error) {
+	var goalFileArrary []string
+	fileArray, err := GetFiles(dirPath)
+	if err == nil {
+		for _, eachFilePath := range fileArray {
+			fileBaseName := filepath.Base(eachFilePath)
+			match, err := filepath.Match(fileNameGlobReg, fileBaseName)
+			if err != nil {
+				return goalFileArrary, err
+			} else if match {
+				goalFileArrary = append(goalFileArrary, eachFilePath)
+			}
+		}
+	}
+	return goalFileArrary, err
+}
+
 // 拷贝文件夹
 func CopyDirectory(scrDir, dstDir string) error {
 	entries, err := os.ReadDir(scrDir)
@@ -111,6 +167,9 @@ func Copy(srcFile, dstFile string) error {
 	defer out.Close()
 
 	in, err := os.Open(srcFile)
+	if err != nil {
+		return err
+	}
 	defer in.Close()
 	if err != nil {
 		return err
@@ -132,63 +191,16 @@ func CopySymLink(source, dest string) error {
 	return os.Symlink(link, dest)
 }
 
-// 检查目录或文件是否存在
-func Exists(filePath string) bool {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
-		return false
-	}
-	return true
-}
-
-// 目录不存在则创建目录
-func CreateDirIfNotExist(dirPath string, permMode os.FileMode) error {
-	if Exists(dirPath) {
-		return nil
-	}
-	err := os.MkdirAll(dirPath, permMode)
-	return err
-}
-
-// 获取给定目录下的所有文件
-func GetFiles(dirPath string) ([]string, error) {
-	var fileArray []string
-	err := filepath.Walk(dirPath, func(path string, info fs.FileInfo, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		if !info.IsDir() {
-			fileArray = append(fileArray, path)
-		}
-		return nil
-	})
-	return fileArray, err
-}
-
-// 根据glob规则获取指定目录下匹配的所有文件
-func SearchFileInPath(dirPath string, fileNameGlobReg string) ([]string, error) {
-	var goalFileArrary []string
-	fileArray, err := GetFiles(dirPath)
-	if err == nil {
-		for _, eachFilePath := range fileArray {
-			fileBaseName := filepath.Base(eachFilePath)
-			match, err := filepath.Match(fileNameGlobReg, fileBaseName)
-			if err != nil {
-				return goalFileArrary, err
-			} else if match {
-				goalFileArrary = append(goalFileArrary, eachFilePath)
-			}
-		}
-	}
-	return goalFileArrary, err
-}
-
 // 逐行读取文件
 func ReadFileAsLines(filePath string) ([]string, error) {
+	var resultSlice []string
 	f, err := os.Open(filePath)
+	if err != nil {
+		return resultSlice, err
+	}
 	defer f.Close()
 
 	reader := bufio.NewReader(f)
-	var resultSlice []string
 	for {
 		line, err := reader.ReadString('\n')
 		if err != nil {
@@ -197,7 +209,7 @@ func ReadFileAsLines(filePath string) ([]string, error) {
 				resultSlice = append(resultSlice, line)
 				break
 			}
-			return resultSlice, fmt.Errorf("读取文件内容失败,换行符读取异常！", err)
+			return resultSlice, fmt.Errorf("读取文件内容失败,换行符读取异常! ERROR: %s", err.Error())
 		}
 		resultSlice = append(resultSlice, line)
 	}
@@ -214,12 +226,6 @@ func ReadFileAsByteSlice(filePath string) ([]byte, error) {
 func WriteByteSlice2File(filePath string, byteSlice []byte) error {
 	err := os.WriteFile(filePath, byteSlice, 0666)
 	return err
-}
-
-// 判断目录是否存在
-func ExistDir(dirname string) bool {
-	fi, err := os.Stat(dirname)
-	return (err == nil || os.IsExist(err)) && fi.IsDir()
 }
 
 // 解压 tar.gz
