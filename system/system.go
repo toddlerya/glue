@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os/user"
 	"strconv"
 	"strings"
 	"time"
@@ -12,6 +13,14 @@ import (
 	"github.com/toddlerya/glue/command"
 	"github.com/toddlerya/glue/kit"
 )
+
+type CurrentUserInfo struct {
+	Username string
+	Name     string
+	HomeDir  string
+	Uid      string
+	Gid      string
+}
 
 // 获取系统信息
 func GetHostInfo() (host.InfoStat, error) {
@@ -152,4 +161,19 @@ func RandomPort(blackList []uint16) uint16 {
 		}
 	}
 	return port
+}
+
+// 获取当前用户信息
+func GetCurrentUserInfo() (CurrentUserInfo, error) {
+	currentUserInfo := CurrentUserInfo{}
+	user, err := user.Current()
+	if err != nil {
+		return currentUserInfo, err
+	}
+	currentUserInfo.Gid = user.Gid
+	currentUserInfo.Uid = user.Uid
+	currentUserInfo.HomeDir = user.HomeDir
+	currentUserInfo.Name = user.Name
+	currentUserInfo.Username = user.Username
+	return currentUserInfo, err
 }

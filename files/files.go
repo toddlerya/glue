@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"syscall"
 )
 
@@ -228,10 +229,10 @@ func WriteByteSlice2File(filePath string, byteSlice []byte) error {
 	return err
 }
 
-// 解压 tar.gz
-func DeCompress(tarFile, dest string) error {
-	// 打开准备解压的 tar 包
-	srcFile, err := os.Open(tarFile)
+// 解压gzip文件
+func DeCompressGzip(gzipFile, dest string) error {
+	// 打开准备解压的gzip文件
+	srcFile, err := os.Open(gzipFile)
 	if err != nil {
 		return err
 	}
@@ -293,68 +294,91 @@ func DeCompress(tarFile, dest string) error {
 	}
 }
 
-// 将文件压缩为tar.gz
-func CompressTarGz(fileSlice []*os.File, targzFile string) error {
-	// 创建文件写对象
-	fw, err := os.Create(targzFile)
+// 将文件打包为tar
+func CompressTar(source, target string) error {
+	tarfile, err := os.Create(target)
 	if err != nil {
 		return err
 	}
-	defer fw.Close()
+	defer tarfile.Close()
 
-	// 创建gzip写对象
-	gw := gzip.NewWriter(fw)
-	defer gw.Close()
+	tarball := tar.NewWriter(tarfile)
+	defer tarball.Close()
 
-	// 创建tar写对象
-	tw := tar.NewWriter(gw)
-	defer tw.Close()
-
-	// 逐个文件对象进行压缩处理
-	for _, file := range fileSlice {
-		err := compress(file, "", tw)
-		if err != nil {
-			return err
-		}
+	info, err := os.Stat(source)
+	if err != nil {
+		return nil
 	}
 
-	return err
+	var baseDir string
+	if info.IsDir() {
+		baseDir = filepath.Base(source)
+	}
+
+	return filepath.Walk(source,
+		func(path string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			header, err := tar.FileInfoHeader(info, info.Name())
+			if err != nil {
+				return err
+			}
+
+			if baseDir != "" {
+				header.Name = filepath.Join(baseDir, strings.TrimPrefix(path, source))
+			}
+
+			if err := tarball.WriteHeader(header); err != nil {
+				return err
+			}
+
+			if info.IsDir() {
+				return nil
+			}
+
+			file, err := os.Open(path)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			_, err = io.Copy(tarball, file)
+			return err
+		})
 }
 
-// 对每一个对象进行压缩
-func compress(file *os.File, prefix string, tw *tar.Writer) error {
-	info, err := file.Stat()
+// 解开tar包
+func UnTar(tarball, target string) error {
+	reader, err := os.Open(tarball)
 	if err != nil {
 		return err
 	}
-	if info.IsDir() {
-		prefix = filepath.Join(prefix, info.Name())
-		fileInfos, err := file.Readdir(-1)
-		if err != nil {
+	defer reader.Close()
+	tarReader := tar.NewReader(reader)
+
+	for {
+		header, err := tarReader.Next()
+		if err == io.EOF {
+			break
+		} else if err != nil {
 			return err
 		}
-		for _, fi := range fileInfos {
-			f, err := os.Open(filepath.Join(file.Name(), fi.Name()))
-			if err != nil {
+
+		path := filepath.Join(target, header.Name)
+		info := header.FileInfo()
+		if info.IsDir() {
+			if err = os.MkdirAll(path, info.Mode()); err != nil {
 				return err
 			}
-			err = compress(f, prefix, tw)
-			if err != nil {
-				return err
-			}
+			continue
 		}
-	} else {
-		header, err := tar.FileInfoHeader(info, "")
-		header.Name = filepath.Join(prefix, header.Name)
+
+		file, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode())
 		if err != nil {
 			return err
 		}
-		err = tw.WriteHeader(header)
-		if err != nil {
-			return err
-		}
-		_, err = io.Copy(tw, file)
-		file.Close()
+		defer file.Close()
+		_, err = io.Copy(file, tarReader)
 		if err != nil {
 			return err
 		}
