@@ -42,23 +42,7 @@ func Delete(path string) error {
 
 // 判断目录是否存在,目录存在返回true
 func PathIsExist(path string) bool {
-	_, err := os.Stat(path)
-	if os.IsNotExist(err) {
-		return false
-	} else {
-		return true
-	}
-}
-
-// 判断目录是否存在
-func ExistDir(dirname string) bool {
-	fi, err := os.Stat(dirname)
-	return (err == nil || os.IsExist(err)) && fi.IsDir()
-}
-
-// 检查目录或文件是否存在
-func Exists(filePath string) bool {
-	if _, err := os.Stat(filePath); os.IsNotExist(err) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return false
 	}
 	return true
@@ -66,7 +50,7 @@ func Exists(filePath string) bool {
 
 // 目录不存在则创建目录
 func CreateDirIfNotExist(dirPath string, permMode os.FileMode) error {
-	if Exists(dirPath) {
+	if PathIsExist(dirPath) {
 		return nil
 	}
 	err := os.MkdirAll(dirPath, permMode)
@@ -268,7 +252,7 @@ func DeCompressGzip(gzipFile, dest string) error {
 		switch hdr.Typeflag {
 		case tar.TypeDir: // 如果是目录时候,创建目录
 			// 判断下目录是否存在,不存在就创建
-			if b := ExistDir(dstFileDir); !b {
+			if b := PathIsExist(dstFileDir); !b {
 				// 使用 MkdirAll 不使用 Mkdir ,就类似 Linux 终端下的 mkdir -p,
 				// 可以递归创建每一级目录
 				if err := os.MkdirAll(dstFileDir, 0775); err != nil {
