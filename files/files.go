@@ -5,6 +5,7 @@ import (
 	"bufio"
 	"compress/gzip"
 	"crypto/md5"
+	"encoding/csv"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -381,4 +382,31 @@ func SortFileNameDescend(files []os.FileInfo) {
 	sort.Slice(files, func(i, j int) bool {
 		return files[i].Name() > files[j].Name()
 	})
+}
+
+// 读取CSV文件
+func ReadCSV(csvFile string) ([][]string, error) {
+	var records [][]string
+	fs, err := os.Open(csvFile)
+	if err != nil {
+		return records, err
+	}
+	defer fs.Close()
+
+	reader := csv.NewReader(fs)
+	// 全量读取文件
+	records, err = reader.ReadAll()
+	return records, err
+}
+
+// 写入CSV文件
+func WriteCSV(records [][]string, csvFile string) error {
+	fs, err := os.Create(csvFile)
+	if err != nil {
+		return err
+	}
+	defer fs.Close()
+	writer := csv.NewWriter(fs)
+	writer.Comma = ','
+	return writer.WriteAll(records)
 }
