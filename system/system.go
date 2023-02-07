@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"os/user"
 	"strconv"
 	"strings"
@@ -20,6 +21,15 @@ type CurrentUserInfo struct {
 	HomeDir  string
 	Uid      string
 	Gid      string
+}
+
+func GetHomeDir() string {
+	user, err := user.Current()
+	if err != nil {
+		fmt.Printf("获取用户目录失败: %s\n", err.Error())
+		os.Exit(-1)
+	}
+	return user.HomeDir
 }
 
 // 获取系统信息
