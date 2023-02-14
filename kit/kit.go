@@ -12,6 +12,24 @@ func Contains[T comparable](elems []T, v T) bool {
 	return false
 }
 
+// 使用泛型进行Map操作 ref: https://blog.xintech.co/golang-fan-xing-shi-jian-zhi-map-reduce-filter-han-shu/
+func Map[T, M any](a []T, fn func(T) M) []M {
+	result := make([]M, len(a))
+	for i, e := range a {
+		result[i] = fn(e)
+	}
+	return result
+}
+
+// 使用泛型进行Reduce操作 ref: https://blog.xintech.co/golang-fan-xing-shi-jian-zhi-map-reduce-filter-han-shu/
+func Reduce[T, M any](s []T, fn func(M, T) M, initValue M) M {
+	acc := initValue
+	for _, v := range s {
+		acc = fn(acc, v)
+	}
+	return acc
+}
+
 // 使用泛型进行slcice的过滤
 func Filter[T any](slice []T, fn func(T) bool) []T {
 	var result []T
