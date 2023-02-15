@@ -214,6 +214,25 @@ func WriteByteSlice2File(filePath string, byteSlice []byte) error {
 	return err
 }
 
+// 将字符串切片写入文件
+func WriteStringSlice2File(filePath string, stringSlice []string, newLine bool) error {
+	file, err := os.Create(filePath)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	for _, elementString := range stringSlice {
+		if newLine {
+			elementString = elementString + "\n"
+		}
+		_, err = file.WriteString(elementString)
+		if err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 // 解压gzip文件
 func DeCompressGzip(gzipFile, dest string) error {
 	// 打开准备解压的gzip文件
