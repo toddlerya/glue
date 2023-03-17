@@ -4,6 +4,8 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -26,6 +28,10 @@ func InitLogConfig(formatter, logPath, logName string) {
 			TimestampFormat:        "2006-01-02 15:04:05",
 			ForceColors:            true,
 			DisableLevelTruncation: true,
+			CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+				funcName := filepath.Base(f.Function)
+				return funcName + "()", filepath.Base(f.File) + ":" + strconv.Itoa(f.Line)
+			},
 		})
 	} else {
 		log.Panic("日志格式配置错误: ", formatter)
@@ -36,6 +42,10 @@ func InitLogConfig(formatter, logPath, logName string) {
 		TimestampFormat:        "2006-01-02 15:04:05",
 		ForceColors:            false,
 		DisableLevelTruncation: true,
+		CallerPrettyfier: func(f *runtime.Frame) (string, string) {
+			funcName := filepath.Base(f.Function)
+			return funcName + "()", f.File + ":" + strconv.Itoa(f.Line)
+		},
 	}
 
 	logFilePath := filepath.Join(logPath, logName)
