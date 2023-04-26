@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"os/user"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -42,15 +43,20 @@ func GetHostInfo() (host.InfoStat, error) {
 func GetOutboundIP() (string, error) {
 	conn, err := net.Dial("udp", "8.8.8.8:80")
 	if err != nil {
-		// log.WithFields(log.Fields{"net": "net.Dial()"}).Error(err)
 		// 解决无法进行UDP拨号导致的panic错误
 		// dial udp 8.8.8.8:80: connect: network is unreachable
 		// panic: runtime error: invalid memory address or nil pointer dereference
 		// [signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x10c1909]
 		return "127.0.0.1", err
 	}
-	// 只有conn对象不为nil才能执行Close，直接defer Close是有空指针风险的
-	defer conn.Close()
+
+	defer func() {
+		// 当 net.Dial() 返回错误并且 conn 对象为 nil 时，调用 conn.Close() 方法会导致空指针异常。
+		// 为了避免这种情况，可以在 err 不为 nil 时，直接返回错误，并不执行 conn.Close() 方法
+		if conn != nil {
+			conn.Close()
+		}
+	}()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	ip := localAddr.IP.String()
@@ -186,4 +192,15 @@ func GetCurrentUserInfo() (CurrentUserInfo, error) {
 	currentUserInfo.Name = user.Name
 	currentUserInfo.Username = user.Username
 	return currentUserInfo, err
+}
+
+// 获取进程当前的运行目录
+func GetExecDir() (string, error) {
+	// 当前运行目录
+	execPath, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("获取当前运行目录失败! ERROR: %s", err.Error())
+	}
+	execDir := filepath.Dir(execPath)
+	return execDir, err
 }
