@@ -214,9 +214,21 @@ func WriteByteSlice2File(filePath string, byteSlice []byte) error {
 	return err
 }
 
-// 将字符串切片写入文件
-func WriteStringSlice2File(filePath string, stringSlice []string, newLine bool) error {
-	file, err := os.Create(filePath)
+/*
+将字符串切片写入文件
+如果newLine为true，则文件写入新的一行
+如果append为true，则追加文件写入而不是清空已有文件内容
+*/
+func WriteStringSlice2File(filePath string, stringSlice []string, newLine bool, append bool) error {
+	var file *os.File
+	var err error
+	if append {
+		// 追加写入
+		file, err = os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0666)
+	} else {
+		// 清空写入
+		file, err = os.Create(filePath)
+	}
 	if err != nil {
 		return err
 	}
