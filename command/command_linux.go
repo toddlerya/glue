@@ -1,9 +1,12 @@
+//go:build linux && amd64
+// +build linux,amd64
+
 package command
 
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os/exec"
 	"syscall"
 	"time"
@@ -29,11 +32,11 @@ func runShell(shell string, cmd string) ([]byte, []byte, error) {
 		return stdoutMsg, stderrMsg, fmt.Errorf("启动命令失败: CMD: %s ERROR: %s", cmd, err.Error())
 	}
 
-	stdoutMsg, err = ioutil.ReadAll(stdout)
+	stdoutMsg, err = io.ReadAll(stdout)
 	if err != nil {
 		return stdoutMsg, stderrMsg, fmt.Errorf("获取命令执行标准输出失败: CMD: %s ERROR: %s", cmd, err.Error())
 	}
-	stderrMsg, err = ioutil.ReadAll(stderr)
+	stderrMsg, err = io.ReadAll(stderr)
 	if err != nil {
 		return stdoutMsg, stderrMsg, fmt.Errorf("获取命令标准错误失败: CMD: %s ERROR: %s", cmd, err.Error())
 	}
@@ -79,6 +82,11 @@ func RunCmdStream(tag, shell, cmd string, stdoutChan, stderrChan, shutdownChan c
 	}
 
 	// 程序退出时kill子进程 Ref: https://colobu.com/2020/12/27/go-with-os-exec/
+	/*
+		在 Linux 平台编译 Windows 时，会出现 unknown field Setpgid in struct literal of type syscall.SysProcAttr 的错误，
+		这是因为 Setpgid 是 Linux 特有的一个系统调用，在 Windows 平台上并不存在。
+		解决此问题的方法是将 Setpgid 字段从 syscall.SysProcAttr 结构体中移除
+	*/
 	cmdStuct.SysProcAttr = &syscall.SysProcAttr{Setpgid: false}
 
 	// 异步启动命令
