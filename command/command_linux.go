@@ -40,6 +40,21 @@ func runShell(shell string, cmd string) ([]byte, []byte, error) {
 	if err != nil {
 		return stdoutMsg, stderrMsg, fmt.Errorf("获取命令标准错误失败: CMD: %s ERROR: %s", cmd, err.Error())
 	}
+
+	// 等待子进程结束，并从操作系统中移除进程表项
+	if err = cmdStuct.Wait(); err != nil {
+		return stdoutMsg, stderrMsg, fmt.Errorf("等待命令执行结束失败: CMD: %s ERROR: %s", cmd, err.Error())
+	}
+
+	// Wait() 方法会阻塞当前的 goroutine，直到子进程结束。如果需要在等待子进程的同时执行其他任务，可以将 cmdStruct.Wait() 方法放在一个 goroutine 中执行
+	// go func() {
+	// 	// 等待子进程结束，并从操作系统中移除进程表项
+	// 	// 不进行Wait()调用，会产生僵尸进程的
+	// 	if err = cmdStuct.Wait(); err != nil {
+	// 		logrus.Error("等待命令执行结束失败: CMD: %s ERROR: %s", cmd, err.Error())
+	// 	}
+	// }()
+
 	return stdoutMsg, stderrMsg, err
 }
 
