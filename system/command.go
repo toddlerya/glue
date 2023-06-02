@@ -2,7 +2,6 @@ package system
 
 import (
 	"bytes"
-	"fmt"
 	"os/exec"
 	"unicode/utf8"
 
@@ -40,7 +39,6 @@ func ExecCommand(command string, opts ...Option) (stdout, stderr string, exitCod
 	}
 	cmd.Stdout = &stdOutBuf
 	cmd.Stderr = &stdErrBuf
-	fmt.Println("cmd.String()==>", cmd.String())
 
 	err = cmd.Run()
 	exitCode = cmd.ProcessState.ExitCode()
