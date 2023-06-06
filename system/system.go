@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/user"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -14,6 +15,7 @@ import (
 	"github.com/shirou/gopsutil/host"
 	"github.com/toddlerya/glue/command"
 	"github.com/toddlerya/glue/kit"
+	"github.com/vishvananda/netlink"
 )
 
 type CurrentUserInfo struct {
@@ -22,6 +24,16 @@ type CurrentUserInfo struct {
 	HomeDir  string
 	Uid      string
 	Gid      string
+}
+
+type NetInterfaceInfo struct {
+	Index        int    // positive integer that starts at one, zero is never used
+	MTU          int    // maximum transmission unit
+	Name         string // e.g., "en0", "lo0", "eth0.100"
+	HardwareAddr string // IEEE MAC-48, EUI-48 and EUI-64 form
+	Flags        string // e.g., FlagUp, FlagLoopback, FlagMulticast
+	IPV4Addr     string
+	IPV6Addr     string
 }
 
 func GetHomeDir() string {
@@ -41,7 +53,7 @@ func GetHostInfo() (host.InfoStat, error) {
 
 // 获取本机首选IP地址
 func GetOutboundIP() (string, error) {
-	conn, err := net.Dial("udp", "8.8.8.8:80")
+	conn, err := net.DialTimeout("udp", "8.8.8.8:80", 5*time.Second)
 	if err != nil {
 		// 解决无法进行UDP拨号导致的panic错误
 		// dial udp 8.8.8.8:80: connect: network is unreachable
@@ -61,6 +73,90 @@ func GetOutboundIP() (string, error) {
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	ip := localAddr.IP.String()
 	return ip, err
+}
+
+// 获取本机首选IP地址的另一种备选方案
+func GetOutboundIPByInterfaceAndRoute() (string, error) {
+	// 获取所有路由
+	ipAddress := "127.0.0.1"
+	defaultGateWay := ""
+	routes, err := netlink.RouteList(nil, netlink.FAMILY_V4)
+	if err != nil {
+		return ipAddress, err
+	}
+
+	// 获取默认路由
+	for _, route := range routes {
+		if route.Gw != nil {
+			defaultGateWay = route.Gw.To4().String()
+		}
+	}
+
+	fmt.Println("defaultGateWay: ", defaultGateWay)
+
+	netInterfaceInfoSlice, err := GetNetInterfacesInfo()
+	if err != nil {
+		return ipAddress, err
+	} else {
+		for _, netInter := range netInterfaceInfoSlice {
+			// 如果获取到默认网关，使用默认网关的前两位匹配IP地址
+			if len(defaultGateWay) > 3 {
+				// 10.1.2.254的网关前缀 10.1
+				gateWayPrefix := strings.Join(strings.Split(defaultGateWay, ".")[0:2], ".")
+				if strings.HasPrefix(netInter.IPV4Addr, gateWayPrefix) {
+					ipAddress = netInter.IPV4Addr
+					break
+				}
+			} else {
+				// 网卡命名规范
+				// https://blog.51cto.com/u_15127507/3941816
+				// https://developer.aliyun.com/article/609587
+				// 查找物理网卡
+				if netInter.IPV4Addr != "" {
+					netNamePatten := regexp.MustCompile(`(en\w+|wl\w+|ww\w+)`)
+					if netNamePatten.MatchString(netInter.Name) {
+						ipAddress = netInter.IPV4Addr
+						break
+					}
+				}
+			}
+		}
+	}
+	return ipAddress, err
+}
+
+// 获取本机所有网卡对应的IP地址信息
+func GetNetInterfacesInfo() ([]NetInterfaceInfo, error) {
+	netInterfaceInfoSlice := []NetInterfaceInfo{}
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return netInterfaceInfoSlice, err
+	}
+	for _, inter := range interfaces {
+		netInterfaceInfo := NetInterfaceInfo{
+			Index:        inter.Index,
+			Flags:        inter.Flags.String(),
+			HardwareAddr: inter.HardwareAddr.String(),
+			MTU:          inter.MTU,
+			Name:         inter.Name,
+		}
+		addrs, err := inter.Addrs()
+		if err != nil {
+			return netInterfaceInfoSlice, err
+		}
+		for _, addr := range addrs {
+			if ipNet, ok := addr.(*net.IPNet); ok {
+				if ipNet.IP.To4() != nil {
+					netInterfaceInfo.IPV4Addr = ipNet.IP.String()
+				} else if ipNet.IP.To16() != nil {
+					netInterfaceInfo.IPV6Addr = ipNet.IP.String()
+				}
+			}
+		}
+
+		netInterfaceInfoSlice = append(netInterfaceInfoSlice, netInterfaceInfo)
+	}
+	return netInterfaceInfoSlice, err
 }
 
 // 获取本机所有的IP, 效果等同于 ip addr | grep inet | awk -F " " '{ print $2}'
