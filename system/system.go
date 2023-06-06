@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/host"
+	"github.com/sirupsen/logrus"
 	"github.com/toddlerya/glue/command"
 	"github.com/toddlerya/glue/kit"
 	"github.com/vishvananda/netlink"
@@ -91,8 +92,7 @@ func GetOutboundIPByInterfaceAndRoute() (string, error) {
 			defaultGateWay = route.Gw.To4().String()
 		}
 	}
-
-	fmt.Println("defaultGateWay: ", defaultGateWay)
+	logrus.Debugf("defaultGateWay: %s", defaultGateWay)
 
 	netInterfaceInfoSlice, err := GetNetInterfacesInfo()
 	if err != nil {
