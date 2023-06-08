@@ -241,7 +241,7 @@ func DeCompressGzip(gzipFile, dest string) error {
 		case tar.TypeReg: // 如果是文件就写入到磁盘
 			// 创建一个可以读写的文件,权限就使用 header 中记录的权限
 			// 因为操作系统的 FileMode 是 int32 类型的,hdr 中的是 int64,所以转换下
-			file, err := os.OpenFile(dstFileDir, os.O_CREATE|os.O_RDWR, os.FileMode(hdr.Mode))
+			file, err := os.OpenFile(dstFileDir, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, os.FileMode(hdr.Mode))
 			if err != nil {
 				return err
 			}
