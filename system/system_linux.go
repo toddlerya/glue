@@ -4,6 +4,10 @@
 package system
 
 import (
+	"regexp"
+	"strings"
+
+	"github.com/sirupsen/logrus"
 	"github.com/vishvananda/netlink"
 )
 
