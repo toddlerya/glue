@@ -78,8 +78,14 @@ systemd模式部署
 5. systemctl --user status appName -- 检查是否启动成功
 */
 func SetupSystemdService(systemdServiceConfig SystemdServiceConfig) error {
+
+	err := PreSetupSystemdService()
+	if err != nil {
+		return fmt.Errorf("创建%s目录失败: %s", SYSTEMD_SERVICE_PATH, err.Error())
+	}
+
 	// 渲染生成service文件
-	err := GenSystemdServiceConfigFile(systemdServiceConfig)
+	err = GenSystemdServiceConfigFile(systemdServiceConfig)
 	if err != nil {
 		return err
 	}
