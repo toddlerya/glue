@@ -2,8 +2,10 @@ package sysguard
 
 import (
 	"fmt"
+	"os"
 	"os/user"
 	"path/filepath"
+	"syscall"
 
 	"github.com/toddlerya/glue/system"
 )
@@ -38,4 +40,25 @@ func ChoseSystemctlMode() string {
 	} else {
 		return "--user"
 	}
+}
+
+// 获取当前执行程序文件的所属用户
+func CurrentExecutableFileOwnerInfo() string {
+	execPath, err := os.Executable()
+	if err != nil {
+		panic(err)
+	}
+	fileInfo, err := os.Stat(execPath)
+	if err != nil {
+		panic(err)
+	}
+	stat, ok := fileInfo.Sys().(*syscall.Stat_t)
+	if !ok {
+		panic(err)
+	}
+	user, err := user.LookupId(fmt.Sprintf("%d", stat.Uid))
+	if err != nil {
+		panic(err)
+	}
+	return user.Username
 }
