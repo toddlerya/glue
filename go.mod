@@ -8,8 +8,8 @@ require (
 	github.com/rifflock/lfshook v0.0.0-20180920164130-b9218ef580f5
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/sirupsen/logrus v1.9.0
-	golang.org/x/text v0.9.0
 	github.com/vishvananda/netlink v1.1.0
+	golang.org/x/text v0.9.0
 )
 
 require (

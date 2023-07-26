@@ -2,12 +2,11 @@ package sysguard
 
 import (
 	"fmt"
+	"github.com/toddlerya/glue/system"
 	"os"
 	"os/user"
 	"path/filepath"
 	"syscall"
-
-	"github.com/toddlerya/glue/system"
 )
 
 var SYSTEMD_SERVICE_PATH = ChoseSystemdPathMode()
@@ -61,4 +60,18 @@ func CurrentExecutableFileOwnerInfo() string {
 		panic(err)
 	}
 	return user.Username
+}
+
+// 获取当前shell登陆的用户
+func CurrentShellUserName() string {
+	sudoUser := os.Getenv("SUDO_USER")
+	if sudoUser == "" {
+		u, err := user.Current()
+		if err != nil {
+			panic(err)
+		}
+		return u.Name
+	} else {
+		return sudoUser
+	}
 }
