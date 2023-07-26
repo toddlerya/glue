@@ -11,6 +11,9 @@ import (
 
 var SYSTEMD_SERVICE_PATH = ChoseSystemdPathMode()
 var SYSTEMCTL_MODE = ChoseSystemctlMode()
+
+// systemd service meta config
+// ref: https://unix.stackexchange.com/questions/224992/where-do-i-put-my-systemd-unit-file
 var USER_MODE_SYSTEMD_SERVICE_PATH = filepath.Join(system.GetHomeDir(), ".config", "systemd", "user")
 var ROOT_MODE_SYSTEMD_SERVICE_PATH = "/lib/systemd/system"
 var ROOT_MODE_SYSVINIT_SCRIPT_PATH = "/etc/init.d"
