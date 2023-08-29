@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/shirou/gopsutil/host"
-	"github.com/toddlerya/glue/command"
 	"github.com/toddlerya/glue/kit"
 )
 
@@ -194,12 +193,12 @@ func VerifyPortIsUnused(port uint16) (bool, error) {
 - unknown: 其他未知的情况
 */
 func VerifyRuntimeEnv() (string, error) {
-	stdout, stderr, err := command.RunByBash("cat cgroup", "cat /proc/1/cpuset")
-	if err != nil {
+	stdout, stderr, _, err := ExecCommand("cat /proc/1/cpuset")
+	if err != nil || stderr != "" {
 		return "", fmt.Errorf("检查运行环境类型失败! STDERR: %s ERROR: %s", stderr, err.Error())
 	}
 	stdout = strings.TrimSpace(stdout)
-	if stdout == "/" {
+	if stdout == "/" || stdout == "/init.scope" {
 		return "host", err
 	} else if strings.HasPrefix(stdout, "/kubepods/") {
 		return "pod", err
