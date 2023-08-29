@@ -41,22 +41,20 @@ func ExecCommand(command string, opts ...Option) (stdout, stderr string, exitCod
 	cmd.Stderr = &stdErrBuf
 
 	err = cmd.Run()
-	exitCode = cmd.ProcessState.ExitCode()
 
-	if err != nil {
-		if utf8.Valid(stdErrBuf.Bytes()) {
-			stderr = byteToString(stdErrBuf.Bytes(), "UTF8")
-		} else if validator.IsGBK(stdErrBuf.Bytes()) {
-			stderr = byteToString(stdErrBuf.Bytes(), "GBK")
-		}
-		return
+	exitCode = cmd.ProcessState.ExitCode()
+	stdErrData := stdErrBuf.Bytes()
+	if utf8.Valid(stdErrData) {
+		stderr = byteToString(stdErrData, "UTF8")
+	} else if validator.IsGBK(stdErrData) {
+		stderr = byteToString(stdErrData, "GBK")
 	}
 
-	data := stdOutBuf.Bytes()
-	if utf8.Valid(data) {
-		stdout = byteToString(data, "UTF8")
-	} else if validator.IsGBK(data) {
-		stdout = byteToString(data, "GBK")
+	stdOutData := stdOutBuf.Bytes()
+	if utf8.Valid(stdOutData) {
+		stdout = byteToString(stdOutData, "UTF8")
+	} else if validator.IsGBK(stdOutData) {
+		stdout = byteToString(stdOutData, "GBK")
 	}
 
 	return

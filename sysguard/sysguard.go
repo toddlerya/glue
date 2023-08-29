@@ -55,14 +55,14 @@ func AutoChoseSetupMode() (string, error) {
 			content := string(byteSlice)
 			switch strings.TrimSpace(content) {
 			case "systemd":
-				logrus.Info("Systemd setup")
+				logrus.Info("Systemd mode")
 				mode = "Systemd"
 			case "init":
-				logrus.Info("SysVinit setup")
+				logrus.Info("SysVinit mode")
 				mode = "SysVinit"
 			default:
 				// 不知道是什么情况，使用SysVinit尝试
-				logrus.Warnf("%s is %s unknown init system, try SysVinit setup", proc1CommFile, strings.TrimSpace(content))
+				logrus.Warnf("%s is %s unknown init system, try SysVinit mode", proc1CommFile, strings.TrimSpace(content))
 				mode = "SysVinit"
 			}
 		} else {
