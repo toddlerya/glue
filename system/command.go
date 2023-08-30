@@ -3,6 +3,7 @@ package system
 import (
 	"bytes"
 	"os/exec"
+	"strings"
 	"unicode/utf8"
 
 	"github.com/duke-git/lancet/v2/validator"
@@ -57,6 +58,9 @@ func ExecCommand(command string, opts ...Option) (stdout, stderr string, exitCod
 		stdout = byteToString(stdOutData, "GBK")
 	}
 
+	stdout = strings.TrimSpace(stdout)
+	stderr = strings.TrimSpace(stderr)
+	logrus.Debugf("[cmd]: %s -> [stdOut]: %s [stdErr]: %s [exitCode]: %d [err]: %v", command, stdout, stderr, exitCode, err)
 	return
 }
 
